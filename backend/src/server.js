@@ -10,6 +10,31 @@ const wss = new WebSocketServer({ server });
 // 연결된 클라이언트들을 저장
 const clients = new Map();
 
+// 차단 관계를 저장 (userId -> Set of blocked userIds)
+const blockedRelations = new Map();
+
+// 사용자 차단
+function blockUser(blockerId, blockedId) {
+  if (!blockedRelations.has(blockerId)) {
+    blockedRelations.set(blockerId, new Set());
+  }
+  blockedRelations.get(blockerId).add(blockedId);
+  console.log(`${blockerId}가 ${blockedId}를 차단했습니다`);
+}
+
+// 사용자 차단 해제
+function unblockUser(blockerId, blockedId) {
+  if (blockedRelations.has(blockerId)) {
+    blockedRelations.get(blockerId).delete(blockedId);
+    console.log(`${blockerId}가 ${blockedId}를 차단 해제했습니다`);
+  }
+}
+
+// 차단 상태 확인
+function isBlocked(blockerId, blockedId) {
+  return blockedRelations.has(blockerId) && blockedRelations.get(blockerId).has(blockedId);
+}
+
 // 온라인 사용자 목록을 모든 클라이언트에게 브로드캐스트
 function broadcastOnlineUsers() {
   const onlineUsers = Array.from(clients.entries()).map(([userId, client]) => ({
@@ -86,16 +111,30 @@ wss.on('connection', (ws) => {
           break;
           
         case 'call-request':
-          // 통화 요청
+          // 통화 요청 - 차단 상태 확인
           const callTarget = clients.get(data.targetUserId);
           if (callTarget) {
-            callTarget.ws.send(JSON.stringify({
-              type: 'incoming-call',
-              fromUserId: data.userId,
-              fromProfile: data.fromProfile,
-              callType: data.callType
-            }));
-            console.log(`통화 요청 전달: ${data.callType}`);
+            // 수신자가 발신자를 차단했는지 확인
+            if (isBlocked(data.targetUserId, data.userId)) {
+              // 차단된 사용자에게 거절 응답 전송
+              ws.send(JSON.stringify({
+                type: 'call-response',
+                fromUserId: data.targetUserId,
+                accepted: false,
+                blocked: true,
+                reason: 'blocked'
+              }));
+              console.log(`차단된 사용자의 통화 요청 거절: ${data.userId} -> ${data.targetUserId}`);
+            } else {
+              // 차단되지 않은 경우 정상적으로 통화 요청 전달
+              callTarget.ws.send(JSON.stringify({
+                type: 'incoming-call',
+                fromUserId: data.userId,
+                fromProfile: data.fromProfile,
+                callType: data.callType
+              }));
+              console.log(`통화 요청 전달: ${data.callType}`);
+            }
           }
           break;
           
@@ -103,12 +142,49 @@ wss.on('connection', (ws) => {
           // 통화 응답
           const caller = clients.get(data.targetUserId);
           if (caller) {
+            // 거절 시 차단 정보가 있으면 서버에 저장
+            if (!data.accepted && data.blocked) {
+              blockUser(data.userId, data.targetUserId);
+            }
+            
             caller.ws.send(JSON.stringify({
               type: 'call-response',
               fromUserId: data.userId,
-              accepted: data.accepted
+              accepted: data.accepted,
+              blocked: data.blocked
             }));
             console.log(`통화 응답 전달: ${data.accepted ? '수락' : '거절'}`);
+          }
+          break;
+          
+        case 'unblock-user':
+          // 사용자 차단 해제
+          unblockUser(data.userId, data.targetUserId);
+          
+          // 차단 해제된 사용자에게 알림
+          const unblockedUser = clients.get(data.targetUserId);
+          if (unblockedUser) {
+            unblockedUser.ws.send(JSON.stringify({
+              type: 'user-unblocked',
+              fromUserId: data.userId
+            }));
+          }
+          break;
+          
+        case 'reject-one-way-call':
+          // 일방향 통화 거절
+          if (data.blocked) {
+            blockUser(data.userId, data.targetUserId);
+          }
+          
+          // 요청자에게 거절 알림
+          const oneWayCaller = clients.get(data.targetUserId);
+          if (oneWayCaller) {
+            oneWayCaller.ws.send(JSON.stringify({
+              type: 'reject-one-way-call',
+              fromUserId: data.userId,
+              blocked: data.blocked
+            }));
           }
           break;
       }
