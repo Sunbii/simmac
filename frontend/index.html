@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple P2P Messenger</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 프로필 설정 화면 -->
+        <div id="profileSetup" class="screen">
+            <h2>프로필 설정</h2>
+            <div class="form-group">
+                <label for="userName">이름:</label>
+                <input type="text" id="userName" placeholder="이름을 입력하세요">
+            </div>
+            <div class="form-group">
+                <label for="userBio">소개:</label>
+                <textarea id="userBio" placeholder="간단한 소개를 입력하세요"></textarea>
+            </div>
+            <button id="saveProfile">프로필 저장</button>
+        </div>
+
+        <!-- 메인 화면 -->
+        <div id="mainScreen" class="screen hidden">
+            <div class="header">
+                <h1>Simple Messenger</h1>
+                <div class="user-info">
+                    <span id="currentUserName"></span>
+                    <button id="editProfile">프로필 수정</button>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <!-- 사용자 검색 -->
+                <div class="search-section">
+                    <h3>사용자 검색</h3>
+                    <div class="search-bar">
+                        <input type="text" id="searchInput" placeholder="사용자 이름으로 검색">
+                        <button id="searchBtn">검색</button>
+                    </div>
+                    <div id="searchResults" class="search-results"></div>
+                </div>
+
+                <!-- 연결된 사용자 목록 -->
+                <div class="contacts-section">
+                    <h3>연결된 사용자</h3>
+                    <div id="contactsList" class="contacts-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 통화 화면 -->
+        <div id="callScreen" class="screen hidden">
+            <div class="call-header">
+                <h3 id="callTitle">통화 중</h3>
+                <span id="callStatus"></span>
+            </div>
+            
+            <div class="video-container">
+                <video id="localVideo" autoplay muted></video>
+                <video id="remoteVideo" autoplay></video>
+            </div>
+            
+            <div class="call-controls">
+                <button id="toggleVideo" class="control-btn">📹</button>
+                <button id="toggleAudio" class="control-btn">🎤</button>
+                <button id="endCall" class="control-btn end-call">📞</button>
+            </div>
+            
+            <!-- 채팅 영역 -->
+            <div class="chat-container">
+                <div id="chatMessages" class="chat-messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="메시지 입력...">
+                    <button id="sendMessage">전송</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 수신 통화 알림 -->
+        <div id="incomingCall" class="modal hidden">
+            <div class="modal-content">
+                <h3>수신 통화</h3>
+                <p><span id="callerName"></span>님이 <span id="callType"></span> 통화를 요청했습니다.</p>
+                <div class="modal-buttons">
+                    <button id="acceptCall" class="accept-btn">수락</button>
+                    <button id="rejectCall" class="reject-btn">거절</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
