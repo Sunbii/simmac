@@ -316,6 +316,16 @@ video {
     object-fit: cover;
 }
 
+/* 로컬 비디오 좌우반전 (거울 효과) */
+#localVideo {
+    transform: scaleX(-1);
+}
+
+/* 원격 비디오는 그대로 유지 */
+#remoteVideo {
+    transform: none;
+}
+
 .call-controls {
     display: flex;
     justify-content: center;
