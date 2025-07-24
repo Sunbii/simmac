@@ -91,6 +91,18 @@ class P2PMessenger {
         document.getElementById('profileSetup').classList.add('hidden');
         document.getElementById('mainScreen').classList.add('hidden');
         document.getElementById('callScreen').classList.remove('hidden');
+        
+        // 통화 타입에 따라 비디오 컴테이너 표시/숨김
+        const videoContainer = document.querySelector('.video-container');
+        const callType = this.currentCall ? this.currentCall.callType : 'video';
+        
+        if (callType === 'chat') {
+            videoContainer.style.display = 'none';
+            document.getElementById('callTitle').textContent = '채팅 중';
+        } else {
+            videoContainer.style.display = 'block';
+            document.getElementById('callTitle').textContent = '통화 중';
+        }
     }
     
     // 이벤트 리스너 설정
@@ -252,6 +264,22 @@ class P2PMessenger {
                     this.blockedUsers.delete(data.fromUserId);
                     console.log('차단 해제됨:', data.fromUserId);
                 }
+                break;
+                
+            case 'reject-one-way-call':
+                // 일방향 통화가 거절되었을 때
+                const rejectorUser = this.onlineUsers.get(data.fromUserId);
+                const rejectorName = rejectorUser ? rejectorUser.profile.name : '사용자';
+                
+                if (data.blocked) {
+                    this.blockedUsers.add(data.fromUserId);
+                    alert(`${rejectorName}님이 통화를 거절했습니다.\n\n상대방이 먼저 연락할 때까지 다시 연락할 수 없습니다.`);
+                } else {
+                    alert(`${rejectorName}님이 통화를 거절했습니다.`);
+                }
+                
+                // 통화 화면을 닫고 메인 화면으로 돌아가기
+                this.endCall();
                 break;
         }
     }
@@ -666,12 +694,17 @@ class P2PMessenger {
             }));
         } else {
             // 거절된 경우 차단 정보 처리
+            const targetUser = this.onlineUsers.get(this.currentCall.targetUserId);
+            const targetName = targetUser ? targetUser.profile.name : '사용자';
+            
             if (data.blocked) {
                 this.blockedUsers.add(this.currentCall.targetUserId);
-                alert('통화가 거절되었습니다. 상대방이 먼저 연락할 때까지 다시 연락할 수 없습니다.');
+                alert(`${targetName}님이 통화를 거절했습니다.\n\n상대방이 먼저 연락할 때까지 다시 연락할 수 없습니다.`);
             } else {
-                alert('통화가 거절되었습니다.');
+                alert(`${targetName}님이 통화를 거절했습니다.`);
             }
+            
+            // 통화 화면을 닫고 메인 화면으로 돌아가기
             this.endCall();
         }
     }

@@ -222,6 +222,19 @@ button:hover {
     background: #2f855a;
 }
 
+/* 거절 버튼 스타일 */
+.reject-call {
+    background: #e53e3e !important;
+    color: white !important;
+    border: 2px solid #c53030 !important;
+}
+
+.reject-call:hover {
+    background: #c53030 !important;
+    border-color: #9c2626 !important;
+    transform: scale(1.05);
+}
+
 /* 온라인 사용자 목록 스타일 */
 .online-users-list {
     max-height: 300px;
