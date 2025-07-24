@@ -119,16 +119,94 @@ button:hover {
 }
 
 .search-section,
-.contacts-section {
+.contacts-section,
+.online-users-section {
     background: #f8f9fa;
     padding: 20px;
     border-radius: 8px;
 }
 
 .search-section h3,
-.contacts-section h3 {
+.contacts-section h3,
+.online-users-section h3 {
     margin-bottom: 15px;
     color: #667eea;
+}
+
+/* 온라인 사용자 목록 스타일 */
+.online-users-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.online-user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease;
+}
+
+.online-user-item:hover {
+    background: #f1f3f4;
+    border-color: #667eea;
+}
+
+.online-user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.online-status {
+    width: 8px;
+    height: 8px;
+    background: #28a745;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.online-user-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.online-user-bio {
+    font-size: 12px;
+    color: #666;
+    margin-top: 2px;
+}
+
+.call-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.call-buttons button {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    min-width: auto;
+}
+
+.video-call-btn {
+    background: #28a745;
+}
+
+.video-call-btn:hover {
+    background: #218838;
+}
+
+.audio-call-btn {
+    background: #17a2b8;
+}
+
+.audio-call-btn:hover {
+    background: #138496;
 }
 
 .search-bar {

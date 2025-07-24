@@ -9,6 +9,7 @@ class P2PMessenger {
         this.dataChannel = null;
         this.currentCall = null;
         this.contacts = new Set();
+        this.onlineUsers = new Map(); // 온라인 사용자 목록 저장
         
         this.init();
     }
@@ -220,6 +221,10 @@ class P2PMessenger {
             case 'ice-candidate':
                 this.handleIceCandidate(data);
                 break;
+                
+            case 'onlineUsers':
+                this.updateOnlineUsers(data.users);
+                break;
         }
     }
     
@@ -251,6 +256,56 @@ class P2PMessenger {
                     <button class="call-btn" onclick="messenger.startCall('${user.userId}', 'audio')">음성</button>
                     <button class="video-btn" onclick="messenger.startCall('${user.userId}', 'video')">영상</button>
                     <button class="chat-btn" onclick="messenger.startChat('${user.userId}')">채팅</button>
+                </div>
+            `;
+            container.appendChild(userDiv);
+        });
+    }
+    
+    // 온라인 사용자 목록 업데이트
+    updateOnlineUsers(users) {
+        // 현재 사용자 제외
+        const otherUsers = users.filter(user => user.userId !== this.userId);
+        
+        // 온라인 사용자 목록 저장
+        this.onlineUsers.clear();
+        otherUsers.forEach(user => {
+            this.onlineUsers.set(user.userId, user);
+        });
+        
+        // UI 업데이트
+        this.displayOnlineUsers(otherUsers);
+        
+        // 온라인 사용자 수 업데이트
+        document.getElementById('onlineCount').textContent = otherUsers.length;
+        
+        console.log(`온라인 사용자 목록 업데이트: ${otherUsers.length}명`);
+    }
+    
+    // 온라인 사용자 목록 표시
+    displayOnlineUsers(users) {
+        const container = document.getElementById('onlineUsersList');
+        container.innerHTML = '';
+        
+        if (users.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">현재 온라인인 사용자가 없습니다.</p>';
+            return;
+        }
+        
+        users.forEach(user => {
+            const userDiv = document.createElement('div');
+            userDiv.className = 'online-user-item';
+            userDiv.innerHTML = `
+                <div class="online-user-info">
+                    <span class="online-status"></span>
+                    <div>
+                        <div class="online-user-name">${user.profile.name}</div>
+                        <div class="online-user-bio">${user.profile.bio || '소개가 없습니다.'}</div>
+                    </div>
+                </div>
+                <div class="call-buttons">
+                    <button class="audio-call-btn" onclick="messenger.startCall('${user.userId}', 'audio')" title="음성 통화">🎵</button>
+                    <button class="video-call-btn" onclick="messenger.startCall('${user.userId}', 'video')" title="영상 통화">📹</button>
                 </div>
             `;
             container.appendChild(userDiv);

@@ -10,6 +10,28 @@ const wss = new WebSocketServer({ server });
 // 연결된 클라이언트들을 저장
 const clients = new Map();
 
+// 온라인 사용자 목록을 모든 클라이언트에게 브로드캐스트
+function broadcastOnlineUsers() {
+  const onlineUsers = Array.from(clients.entries()).map(([userId, client]) => ({
+    userId,
+    profile: client.profile
+  }));
+  
+  const message = JSON.stringify({
+    type: 'onlineUsers',
+    users: onlineUsers
+  });
+  
+  // 모든 연결된 클라이언트에게 전송
+  clients.forEach((client) => {
+    if (client.ws.readyState === 1) { // WebSocket.OPEN
+      client.ws.send(message);
+    }
+  });
+  
+  console.log(`온라인 사용자 목록 브로드캐스트: ${onlineUsers.length}명`);
+}
+
 // 정적 파일 서빙 (프론트엔드)
 app.use(express.static(path.join(__dirname, '../../frontend')));
 
@@ -28,6 +50,9 @@ wss.on('connection', (ws) => {
           clients.set(data.userId, { ws, profile: data.profile });
           ws.send(JSON.stringify({ type: 'registered', userId: data.userId }));
           console.log(`클라이언트 등록됨: ${data.userId}`);
+          
+          // 모든 클라이언트에게 온라인 사용자 목록 브로드캐스트
+          broadcastOnlineUsers();
           break;
           
         case 'search':
@@ -98,6 +123,9 @@ wss.on('connection', (ws) => {
       if (client.ws === ws) {
         clients.delete(userId);
         console.log(`클라이언트 ${userId} 연결 해제됨`);
+        
+        // 모든 클라이언트에게 온라인 사용자 목록 브로드캐스트
+        broadcastOnlineUsers();
         break;
       }
     }
