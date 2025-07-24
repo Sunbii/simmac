@@ -163,6 +163,14 @@ class P2PMessenger {
             this.allowIncomingCalls = e.target.checked;
             console.log('통화 수신 설정:', this.allowIncomingCalls ? '허용' : '차단');
         });
+        
+        // 일방향 통화 거절
+        document.getElementById('rejectOneWayCall').addEventListener('click', () => {
+            this.rejectOneWayCall();
+        });
+        
+        // 초기 차단된 사용자 목록 표시
+        this.displayBlockedUsers();
     }
     
     // 시그널링 서버 연결
@@ -332,6 +340,62 @@ class P2PMessenger {
         });
     }
     
+    // 차단된 사용자 목록 표시
+    displayBlockedUsers() {
+        const container = document.getElementById('blockedUsersList');
+        const countElement = document.getElementById('blockedCount');
+        
+        // 차단된 사용자 수 업데이트
+        countElement.textContent = this.rejectedByMe.size;
+        
+        container.innerHTML = '';
+        
+        if (this.rejectedByMe.size === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">차단된 사용자가 없습니다.</p>';
+            return;
+        }
+        
+        // 차단된 사용자 목록 표시
+        this.rejectedByMe.forEach(userId => {
+            // 온라인 사용자에서 정보 찾기
+            const userInfo = this.onlineUsers.get(userId);
+            const userName = userInfo ? userInfo.profile.name : `사용자 ${userId.substring(0, 8)}`;
+            const userBio = userInfo ? userInfo.profile.bio : '오프라인';
+            
+            const userDiv = document.createElement('div');
+            userDiv.className = 'blocked-user-item';
+            userDiv.innerHTML = `
+                <div class="blocked-user-info">
+                    <span class="blocked-status"></span>
+                    <div>
+                        <div class="blocked-user-name">${userName}</div>
+                        <div class="online-user-bio">${userBio || '소개가 없습니다.'}</div>
+                    </div>
+                </div>
+                <button class="unblock-btn" onclick="messenger.unblockUser('${userId}')">차단 해제</button>
+            `;
+            container.appendChild(userDiv);
+        });
+    }
+    
+    // 사용자 차단 해제
+    unblockUser(userId) {
+        if (this.rejectedByMe.has(userId)) {
+            this.rejectedByMe.delete(userId);
+            console.log('수동 차단 해제:', userId);
+            
+            // 서버에 차단 해제 알림
+            this.ws.send(JSON.stringify({
+                type: 'unblock-user',
+                userId: this.userId,
+                targetUserId: userId
+            }));
+            
+            // UI 업데이트
+            this.displayBlockedUsers();
+        }
+    }
+    
     // 통화 시작
     async startCall(targetUserId, callType) {
         // 차단된 사용자 확인
@@ -351,6 +415,9 @@ class P2PMessenger {
                 userId: this.userId,
                 targetUserId: targetUserId
             }));
+            
+            // 차단된 사용자 목록 업데이트
+            this.displayBlockedUsers();
         }
         
         this.currentCall = { targetUserId, callType };
@@ -469,6 +536,9 @@ class P2PMessenger {
         this.showCallScreen();
         document.getElementById('callStatus').textContent = '일방향 수신 중... (발신 불가)';
         
+        // 일방향 모드에서 거절 버튼 표시
+        document.getElementById('rejectOneWayCall').classList.remove('hidden');
+        
         // 로컬 비디오를 비활성화하고 메시지 표시
         const localVideo = document.getElementById('localVideo');
         localVideo.style.display = 'none';
@@ -485,6 +555,31 @@ class P2PMessenger {
         }
     }
     
+    // 일방향 통화 거절
+    rejectOneWayCall() {
+        if (!this.currentCall || !this.currentCall.isOneWay) {
+            return;
+        }
+        
+        // 거절한 사용자를 차단 목록에 추가
+        this.rejectedByMe.add(this.currentCall.targetUserId);
+        console.log('일방향 통화 거절 및 차단:', this.currentCall.targetUserId);
+        
+        // 서버에 거절 알림 전송
+        this.ws.send(JSON.stringify({
+            type: 'reject-one-way-call',
+            userId: this.userId,
+            targetUserId: this.currentCall.targetUserId,
+            blocked: true
+        }));
+        
+        // 차단된 사용자 목록 업데이트
+        this.displayBlockedUsers();
+        
+        // 통화 종료
+        this.endCall();
+    }
+    
     rejectIncomingCall() {
         document.getElementById('incomingCall').classList.add('hidden');
         
@@ -499,6 +594,9 @@ class P2PMessenger {
             accepted: false,
             blocked: true // 차단 정보 전달
         }));
+        
+        // 차단된 사용자 목록 업데이트
+        this.displayBlockedUsers();
     }
     
     // WebRTC 연결 설정
@@ -657,6 +755,9 @@ class P2PMessenger {
         if (oneWayMessage) {
             oneWayMessage.remove();
         }
+        
+        // 거절 버튼 숨기기
+        document.getElementById('rejectOneWayCall').classList.add('hidden');
         
         document.getElementById('chatMessages').innerHTML = '';
         

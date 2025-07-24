@@ -148,7 +148,8 @@ button:hover {
 
 .search-section,
 .contacts-section,
-.online-users-section {
+.online-users-section,
+.blocked-users-section {
     background: #f8f9fa;
     padding: 20px;
     border-radius: 8px;
@@ -156,9 +157,69 @@ button:hover {
 
 .search-section h3,
 .contacts-section h3,
-.online-users-section h3 {
+.online-users-section h3,
+.blocked-users-section h3 {
     margin-bottom: 15px;
     color: #667eea;
+}
+
+/* 차단된 사용자 목록 스타일 */
+.blocked-users-section {
+    background: #fff5f5;
+    border: 1px solid #fed7d7;
+}
+
+.blocked-users-section h3 {
+    color: #e53e3e;
+}
+
+.blocked-users-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.blocked-user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    margin-bottom: 6px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #fed7d7;
+}
+
+.blocked-user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.blocked-status {
+    width: 8px;
+    height: 8px;
+    background: #e53e3e;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.blocked-user-name {
+    font-weight: 600;
+    color: #e53e3e;
+}
+
+.unblock-btn {
+    background: #38a169;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.unblock-btn:hover {
+    background: #2f855a;
 }
 
 /* 온라인 사용자 목록 스타일 */
@@ -383,6 +444,14 @@ video {
 
 .end-call:hover {
     background: #c82333;
+}
+
+.reject-call {
+    background: #ff6b6b;
+}
+
+.reject-call:hover {
+    background: #ff5252;
 }
 
 .chat-container {

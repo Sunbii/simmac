@@ -55,6 +55,12 @@
                     <h3>온라인 사용자 (<span id="onlineCount">0</span>명)</h3>
                     <div id="onlineUsersList" class="online-users-list"></div>
                 </div>
+                
+                <!-- 차단된 사용자 목록 -->
+                <div class="blocked-users-section">
+                    <h3>차단된 사용자 (<span id="blockedCount">0</span>명)</h3>
+                    <div id="blockedUsersList" class="blocked-users-list"></div>
+                </div>
             </div>
         </div>
 
@@ -73,6 +79,7 @@
             <div class="call-controls">
                 <button id="toggleVideo" class="control-btn">📹</button>
                 <button id="toggleAudio" class="control-btn">🎤</button>
+                <button id="rejectOneWayCall" class="control-btn reject-call hidden">❌</button>
                 <button id="endCall" class="control-btn end-call">📞</button>
             </div>
             
