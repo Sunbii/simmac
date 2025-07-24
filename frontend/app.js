@@ -325,7 +325,14 @@ class P2PMessenger {
             };
             
             this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            document.getElementById('localVideo').srcObject = this.localStream;
+            const localVideo = document.getElementById('localVideo');
+            localVideo.srcObject = this.localStream;
+            
+            // 로컬 비디오 미러링 적용 (JavaScript로 강제 적용)
+            localVideo.style.transform = 'scaleX(-1)';
+            localVideo.style.webkitTransform = 'scaleX(-1)';
+            localVideo.style.mozTransform = 'scaleX(-1)';
+            localVideo.style.msTransform = 'scaleX(-1)';
             
             // 통화 요청 전송
             this.ws.send(JSON.stringify({
@@ -370,7 +377,14 @@ class P2PMessenger {
             };
             
             this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            document.getElementById('localVideo').srcObject = this.localStream;
+            const localVideo = document.getElementById('localVideo');
+            localVideo.srcObject = this.localStream;
+            
+            // 로컬 비디오 미러링 적용 (JavaScript로 강제 적용)
+            localVideo.style.transform = 'scaleX(-1)';
+            localVideo.style.webkitTransform = 'scaleX(-1)';
+            localVideo.style.mozTransform = 'scaleX(-1)';
+            localVideo.style.msTransform = 'scaleX(-1)';
             
             // 통화 수락 응답
             this.ws.send(JSON.stringify({

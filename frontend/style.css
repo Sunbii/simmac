@@ -316,14 +316,20 @@ video {
     object-fit: cover;
 }
 
-/* 로컬 비디오 좌우반전 (거울 효과) */
-#localVideo {
-    transform: scaleX(-1);
+/* 로컬 비디오 좌우반전 (거울 효과) - 강화된 우선순위 */
+#callScreen #localVideo {
+    transform: scaleX(-1) !important;
+    -webkit-transform: scaleX(-1) !important;
+    -moz-transform: scaleX(-1) !important;
+    -ms-transform: scaleX(-1) !important;
 }
 
 /* 원격 비디오는 그대로 유지 */
-#remoteVideo {
-    transform: none;
+#callScreen #remoteVideo {
+    transform: none !important;
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
 }
 
 .call-controls {
