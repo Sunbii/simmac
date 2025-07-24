@@ -112,6 +112,34 @@ button:hover {
     font-weight: 600;
 }
 
+/* 통화 설정 체크박스 */
+.call-settings {
+    margin-top: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    user-select: none;
+}
+
+.checkbox-container input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+.checkbox-container:hover {
+    color: #667eea;
+}
+
 .main-content {
     display: grid;
     grid-template-columns: 1fr 1fr;

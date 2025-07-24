@@ -11,6 +11,11 @@ class P2PMessenger {
         this.contacts = new Set();
         this.onlineUsers = new Map(); // 온라인 사용자 목록 저장
         
+        // 통화 권한 시스템
+        this.allowIncomingCalls = true; // 수신 통화 허용 여부
+        this.blockedUsers = new Set(); // 거절로 인해 차단된 사용자 목록
+        this.rejectedByMe = new Set(); // 내가 거절한 사용자 목록
+        
         this.init();
     }
 
@@ -152,6 +157,12 @@ class P2PMessenger {
         document.getElementById('rejectCall').addEventListener('click', () => {
             this.rejectIncomingCall();
         });
+        
+        // 통화가능 체크박스
+        document.getElementById('allowIncomingCalls').addEventListener('change', (e) => {
+            this.allowIncomingCalls = e.target.checked;
+            console.log('통화 수신 설정:', this.allowIncomingCalls ? '허용' : '차단');
+        });
     }
     
     // 시그널링 서버 연결
@@ -225,6 +236,14 @@ class P2PMessenger {
                 
             case 'onlineUsers':
                 this.updateOnlineUsers(data.users);
+                break;
+                
+            case 'user-unblocked':
+                // 상대방이 나를 차단 해제했을 때
+                if (this.blockedUsers.has(data.fromUserId)) {
+                    this.blockedUsers.delete(data.fromUserId);
+                    console.log('차단 해제됨:', data.fromUserId);
+                }
                 break;
         }
     }
@@ -315,6 +334,25 @@ class P2PMessenger {
     
     // 통화 시작
     async startCall(targetUserId, callType) {
+        // 차단된 사용자 확인
+        if (this.blockedUsers.has(targetUserId)) {
+            alert('이 사용자는 통화를 거절했습니다. 상대방이 먼저 연락할 때까지 기다려주세요.');
+            return;
+        }
+        
+        // 내가 이전에 거절한 사용자에게 먼저 연락하는 경우 차단 해제
+        if (this.rejectedByMe.has(targetUserId)) {
+            this.rejectedByMe.delete(targetUserId);
+            console.log('차단 해제:', targetUserId);
+            
+            // 서버에 차단 해제 알림
+            this.ws.send(JSON.stringify({
+                type: 'unblock-user',
+                userId: this.userId,
+                targetUserId: targetUserId
+            }));
+        }
+        
         this.currentCall = { targetUserId, callType };
         
         // 미디어 스트림 획득
@@ -354,11 +392,18 @@ class P2PMessenger {
     
     // 수신 통화 처리
     showIncomingCall(data) {
-        document.getElementById('callerName').textContent = data.fromProfile.name;
-        document.getElementById('callType').textContent = data.callType === 'video' ? '영상' : '음성';
-        document.getElementById('incomingCall').classList.remove('hidden');
-        
         this.incomingCallData = data;
+        
+        // 통화가능 체크박스가 체크되어 있으면 승인 요청 표시
+        if (this.allowIncomingCalls) {
+            document.getElementById('callerName').textContent = data.fromProfile.name;
+            document.getElementById('callType').textContent = data.callType === 'video' ? '영상' : '음성';
+            document.getElementById('incomingCall').classList.remove('hidden');
+        } else {
+            // 체크박스가 해제되어 있으면 자동으로 수락 (일방향 수신만)
+            console.log('일방향 통화 수신:', data.fromProfile.name);
+            this.acceptIncomingCallOneWay();
+        }
     }
     
     async acceptIncomingCall() {
@@ -403,14 +448,56 @@ class P2PMessenger {
         }
     }
     
+    // 일방향 통화 수락 (수신만 가능, 발신 불가)
+    async acceptIncomingCallOneWay() {
+        const callType = this.incomingCallData.callType;
+        this.currentCall = { 
+            targetUserId: this.incomingCallData.fromUserId, 
+            callType: callType,
+            isOneWay: true // 일방향 통화 표시
+        };
+        
+        // 일방향 통화는 로컬 스트림 없이 수락
+        this.ws.send(JSON.stringify({
+            type: 'call-response',
+            userId: this.userId,
+            targetUserId: this.incomingCallData.fromUserId,
+            accepted: true,
+            oneWayMode: true // 일방향 모드 표시
+        }));
+        
+        this.showCallScreen();
+        document.getElementById('callStatus').textContent = '일방향 수신 중... (발신 불가)';
+        
+        // 로컬 비디오를 비활성화하고 메시지 표시
+        const localVideo = document.getElementById('localVideo');
+        localVideo.style.display = 'none';
+        
+        // 안내 메시지 추가
+        const videoContainer = document.querySelector('.video-container');
+        if (!document.getElementById('oneWayMessage')) {
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'oneWayMessage';
+            messageDiv.style.cssText = 'position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-size: 14px;';
+            messageDiv.textContent = '일방향 수신 모드: 상대방의 영상/음성만 수신합니다.';
+            videoContainer.style.position = 'relative';
+            videoContainer.appendChild(messageDiv);
+        }
+    }
+    
     rejectIncomingCall() {
         document.getElementById('incomingCall').classList.add('hidden');
+        
+        // 거절한 사용자를 차단 목록에 추가 (내가 먼저 연락할 때까지)
+        this.rejectedByMe.add(this.incomingCallData.fromUserId);
+        console.log('사용자 거절 및 차단:', this.incomingCallData.fromProfile.name);
         
         this.ws.send(JSON.stringify({
             type: 'call-response',
             userId: this.userId,
             targetUserId: this.incomingCallData.fromUserId,
-            accepted: false
+            accepted: false,
+            blocked: true // 차단 정보 전달
         }));
     }
     
@@ -480,7 +567,13 @@ class P2PMessenger {
                 offer: offer
             }));
         } else {
-            alert('통화가 거절되었습니다.');
+            // 거절된 경우 차단 정보 처리
+            if (data.blocked) {
+                this.blockedUsers.add(this.currentCall.targetUserId);
+                alert('통화가 거절되었습니다. 상대방이 먼저 연락할 때까지 다시 연락할 수 없습니다.');
+            } else {
+                alert('통화가 거절되었습니다.');
+            }
             this.endCall();
         }
     }
@@ -552,8 +645,19 @@ class P2PMessenger {
         }
         
         // UI 초기화
-        document.getElementById('localVideo').srcObject = null;
-        document.getElementById('remoteVideo').srcObject = null;
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        
+        localVideo.srcObject = null;
+        remoteVideo.srcObject = null;
+        localVideo.style.display = ''; // 일방향 모드에서 숨긴 로컬 비디오 복원
+        
+        // 일방향 통화 메시지 제거
+        const oneWayMessage = document.getElementById('oneWayMessage');
+        if (oneWayMessage) {
+            oneWayMessage.remove();
+        }
+        
         document.getElementById('chatMessages').innerHTML = '';
         
         this.currentCall = null;
