@@ -13,6 +13,7 @@ class P2PMessenger {
         
         this.init();
     }
+
     
     init() {
         this.loadProfile();
