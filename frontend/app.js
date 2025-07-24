@@ -281,6 +281,56 @@ class P2PMessenger {
                 // 통화 화면을 닫고 메인 화면으로 돌아가기
                 this.endCall();
                 break;
+                
+            case 'call-ended':
+                // 상대방이 통화를 종료했을 때
+                const endedUser = this.onlineUsers.get(data.fromUserId);
+                const endedUserName = endedUser ? endedUser.profile.name : '사용자';
+                
+                console.log(`${endedUserName}님이 통화를 종료했습니다.`);
+                
+                // 상대방이 통화를 종료했으므로 내 화면도 닫기 (알림 없이)
+                // 통화 종료 알림을 다시 보내지 않도록 currentCall을 먼저 제거
+                this.currentCall = null;
+                
+                // UI 초기화 (스트림 정리 등)
+                if (this.localStream) {
+                    this.localStream.getTracks().forEach(track => track.stop());
+                    this.localStream = null;
+                }
+                
+                if (this.peerConnection) {
+                    this.peerConnection.close();
+                    this.peerConnection = null;
+                }
+                
+                if (this.dataChannel) {
+                    this.dataChannel.close();
+                    this.dataChannel = null;
+                }
+                
+                // UI 초기화
+                const localVideo = document.getElementById('localVideo');
+                const remoteVideo = document.getElementById('remoteVideo');
+                
+                localVideo.srcObject = null;
+                remoteVideo.srcObject = null;
+                localVideo.style.display = '';
+                
+                // 일방향 통화 메시지 제거
+                const oneWayMessage = document.getElementById('oneWayMessage');
+                if (oneWayMessage) {
+                    oneWayMessage.remove();
+                }
+                
+                // 거절 버튼 숨기기
+                document.getElementById('rejectOneWayCall').classList.add('hidden');
+                
+                document.getElementById('chatMessages').innerHTML = '';
+                
+                // 메인 화면으로 돌아가기
+                this.showMainScreen();
+                break;
         }
     }
     
@@ -757,6 +807,16 @@ class P2PMessenger {
     }
     
     endCall() {
+        // 통화 종료 알림을 상대방에게 전송
+        if (this.currentCall && this.currentCall.targetUserId && this.ws) {
+            this.ws.send(JSON.stringify({
+                type: 'call-ended',
+                userId: this.userId,
+                targetUserId: this.currentCall.targetUserId
+            }));
+            console.log('통화 종료 알림 전송:', this.currentCall.targetUserId);
+        }
+        
         // 스트림 정리
         if (this.localStream) {
             this.localStream.getTracks().forEach(track => track.stop());

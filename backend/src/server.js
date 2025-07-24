@@ -187,6 +187,18 @@ wss.on('connection', (ws) => {
             }));
           }
           break;
+          
+        case 'call-ended':
+          // 통화 종료 알림 전달
+          const callEndTarget = clients.get(data.targetUserId);
+          if (callEndTarget) {
+            callEndTarget.ws.send(JSON.stringify({
+              type: 'call-ended',
+              fromUserId: data.userId
+            }));
+            console.log(`통화 종료 알림 전달: ${data.userId} -> ${data.targetUserId}`);
+          }
+          break;
       }
     } catch (error) {
       console.error('메시지 처리 오류:', error);
