@@ -121,6 +121,65 @@ button:hover {
     border: 1px solid #e9ecef;
 }
 
+.call-settings h3 {
+    margin-bottom: 12px;
+    color: #667eea;
+    font-size: 16px;
+}
+
+.call-mode-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.radio-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    padding: 4px 0;
+}
+
+.radio-container input[type="radio"] {
+    display: none;
+}
+
+.radio-checkmark {
+    width: 18px;
+    height: 18px;
+    background-color: #eee;
+    border: 2px solid #667eea;
+    border-radius: 50%;
+    position: relative;
+}
+
+.radio-container input[type="radio"]:checked + .radio-checkmark {
+    background-color: #667eea;
+}
+
+.radio-container input[type="radio"]:checked + .radio-checkmark:after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    background-color: white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.radio-container:hover .radio-checkmark {
+    background-color: #f0f0f0;
+}
+
+.radio-container input[type="radio"]:checked:hover + .radio-checkmark {
+    background-color: #5a67d8;
+}
+
 .checkbox-container {
     display: flex;
     align-items: center;

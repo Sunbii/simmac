@@ -131,9 +131,10 @@ wss.on('connection', (ws) => {
                 type: 'incoming-call',
                 fromUserId: data.userId,
                 fromProfile: data.fromProfile,
-                callType: data.callType
+                callType: data.callType,
+                callMode: data.callMode || 'normal' // 통화 모드 정보 전달
               }));
-              console.log(`통화 요청 전달: ${data.callType}`);
+              console.log(`통화 요청 전달: ${data.callType}, 모드: ${data.callMode || 'normal'}`);
             }
           }
           break;
@@ -182,6 +183,36 @@ wss.on('connection', (ws) => {
           if (oneWayCaller) {
             oneWayCaller.ws.send(JSON.stringify({
               type: 'reject-one-way-call',
+              fromUserId: data.userId,
+              blocked: data.blocked
+            }));
+          }
+          break;
+          
+        case 'accept-speaking':
+          // 일단 들음 모드에서 말하기 수락
+          const acceptTarget = clients.get(data.targetUserId);
+          if (acceptTarget) {
+            acceptTarget.ws.send(JSON.stringify({
+              type: 'accept-speaking',
+              fromUserId: data.userId
+            }));
+            console.log(`말하기 수락 알림 전달: ${data.userId} -> ${data.targetUserId}`);
+          }
+          break;
+          
+        case 'reject-speaking':
+          // 일단 들음 모드에서 말하기 거절
+          if (data.blocked) {
+            blockUser(data.userId, data.targetUserId);
+            console.log(`말하기 거절로 인한 차단: ${data.userId} -> ${data.targetUserId}`);
+          }
+          
+          // 요청자에게 거절 알림
+          const rejectSpeakingTarget = clients.get(data.targetUserId);
+          if (rejectSpeakingTarget) {
+            rejectSpeakingTarget.ws.send(JSON.stringify({
+              type: 'reject-speaking',
               fromUserId: data.userId,
               blocked: data.blocked
             }));

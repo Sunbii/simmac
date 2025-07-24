@@ -11,8 +11,8 @@ class P2PMessenger {
         this.contacts = new Set();
         this.onlineUsers = new Map(); // 온라인 사용자 목록 저장
         
-        // 통화 권한 시스템
-        this.allowIncomingCalls = true; // 수신 통화 허용 여부
+        // 통화 모드 시스템
+        this.callMode = 'normal'; // 'listen-first', 'listen-only', 'normal'
         this.blockedUsers = new Set(); // 거절로 인해 차단된 사용자 목록
         this.rejectedByMe = new Set(); // 내가 거절한 사용자 목록
         
@@ -170,10 +170,14 @@ class P2PMessenger {
             this.rejectIncomingCall();
         });
         
-        // 통화가능 체크박스
-        document.getElementById('allowIncomingCalls').addEventListener('change', (e) => {
-            this.allowIncomingCalls = e.target.checked;
-            console.log('통화 수신 설정:', this.allowIncomingCalls ? '허용' : '차단');
+        // 통화 모드 라디오 버튼
+        document.querySelectorAll('input[name="callMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    this.callMode = e.target.value;
+                    console.log('통화 모드 변경:', this.callMode);
+                }
+            });
         });
         
         // 일방향 통화 거절
@@ -279,6 +283,35 @@ class P2PMessenger {
                 }
                 
                 // 통화 화면을 닫고 메인 화면으로 돌아가기
+                this.endCall();
+                break;
+                
+            case 'accept-speaking':
+                // 상대방이 일단 들음 모드에서 말하기를 수락했을 때
+                const acceptUser = this.onlineUsers.get(data.fromUserId);
+                const acceptUserName = acceptUser ? acceptUser.profile.name : '사용자';
+                console.log(`${acceptUserName}님이 말하기를 수락했습니다.`);
+                
+                // 통화 상태를 양방향으로 변경
+                if (this.currentCall) {
+                    this.currentCall.mode = 'normal';
+                    document.getElementById('callStatus').textContent = '양방향 통화 중';
+                }
+                break;
+                
+            case 'reject-speaking':
+                // 상대방이 일단 들음 모드에서 말하기를 거절했을 때
+                const rejectSpeakingUser = this.onlineUsers.get(data.fromUserId);
+                const rejectSpeakingUserName = rejectSpeakingUser ? rejectSpeakingUser.profile.name : '사용자';
+                
+                if (data.blocked) {
+                    this.blockedUsers.add(data.fromUserId);
+                    alert(`${rejectSpeakingUserName}님이 말하기를 거절했습니다.\n\n상대방이 먼저 연락할 때까지 다시 연락할 수 없습니다.`);
+                } else {
+                    alert(`${rejectSpeakingUserName}님이 말하기를 거절했습니다.`);
+                }
+                
+                // 통화 종료
                 this.endCall();
                 break;
                 
@@ -498,56 +531,92 @@ class P2PMessenger {
             this.displayBlockedUsers();
         }
         
-        this.currentCall = { targetUserId, callType };
+        this.currentCall = { targetUserId, callType, mode: this.callMode };
+    
+    // 듣기만 해 모드인 경우 미디어 스트림 없이 통화 시작
+    if (this.callMode === 'listen-only') {
+        // 통화 요청 전송 (듣기만 해 모드)
+        this.ws.send(JSON.stringify({
+            type: 'call-request',
+            userId: this.userId,
+            targetUserId: targetUserId,
+            fromProfile: this.userProfile,
+            callType: callType,
+            callMode: 'listen-only'
+        }));
         
-        // 미디어 스트림 획득
-        try {
-            const constraints = {
-                audio: true,
-                video: callType === 'video'
-            };
-            
-            this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            const localVideo = document.getElementById('localVideo');
-            localVideo.srcObject = this.localStream;
-            
-            // 로컬 비디오 미러링 적용 (JavaScript로 강제 적용)
+        this.showCallScreen();
+        document.getElementById('callStatus').textContent = '듣기만 해 모드로 연결 중...';
+        
+        // 로컬 비디오 숨기기
+        const localVideo = document.getElementById('localVideo');
+        localVideo.style.display = 'none';
+        
+        return;
+    }
+    
+    // 일반 모드 또는 일단 들음 모드: 미디어 스트림 획득
+    try {
+        const constraints = {
+            audio: true,
+            video: callType === 'video'
+        };
+        
+        this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const localVideo = document.getElementById('localVideo');
+        localVideo.srcObject = this.localStream;
+        
+        // 로컬 비디오 미러링 적용 (JavaScript로 강제 적용)
+        if (callType === 'video') {
             localVideo.style.transform = 'scaleX(-1)';
             localVideo.style.webkitTransform = 'scaleX(-1)';
             localVideo.style.mozTransform = 'scaleX(-1)';
             localVideo.style.msTransform = 'scaleX(-1)';
-            
-            // 통화 요청 전송
-            this.ws.send(JSON.stringify({
-                type: 'call-request',
-                userId: this.userId,
-                targetUserId: targetUserId,
-                fromProfile: this.userProfile,
-                callType: callType
-            }));
-            
-            this.showCallScreen();
-            document.getElementById('callStatus').textContent = '연결 중...';
-            
-        } catch (error) {
-            console.error('미디어 접근 오류:', error);
-            alert('카메라/마이크 접근 권한이 필요합니다.');
         }
+        
+        // 통화 요청 전송
+        this.ws.send(JSON.stringify({
+            type: 'call-request',
+            userId: this.userId,
+            targetUserId: targetUserId,
+            fromProfile: this.userProfile,
+            callType: callType,
+            callMode: this.callMode
+        }));
+        
+        this.showCallScreen();
+        const statusText = this.callMode === 'listen-first' ? '일단 들음 모드로 연결 중...' : '연결 중...';
+        document.getElementById('callStatus').textContent = statusText;
+        
+    } catch (error) {
+        console.error('미디어 접근 오류:', error);
+        alert('카메라/마이크 접근 권한이 필요합니다.');
     }
+}
     
     // 수신 통화 처리
     showIncomingCall(data) {
         this.incomingCallData = data;
         
-        // 통화가능 체크박스가 체크되어 있으면 승인 요청 표시
-        if (this.allowIncomingCalls) {
-            document.getElementById('callerName').textContent = data.fromProfile.name;
-            document.getElementById('callType').textContent = data.callType === 'video' ? '영상' : '음성';
-            document.getElementById('incomingCall').classList.remove('hidden');
-        } else {
-            // 체크박스가 해제되어 있으면 자동으로 수락 (일방향 수신만)
-            console.log('일방향 통화 수신:', data.fromProfile.name);
-            this.acceptIncomingCallOneWay();
+        switch (this.callMode) {
+            case 'normal':
+                // 받으면 말해: 일반 통화 수락/거절 선택
+                document.getElementById('callerName').textContent = data.fromProfile.name;
+                document.getElementById('callType').textContent = data.callType === 'video' ? '영상' : '음성';
+                document.getElementById('incomingCall').classList.remove('hidden');
+                break;
+                
+            case 'listen-first':
+                // 일단 들음: 먼저 듣고 나서 말할지 결정
+                console.log('일단 들음 모드로 통화 수신:', data.fromProfile.name);
+                this.acceptIncomingCallListenFirst();
+                break;
+                
+            case 'listen-only':
+                // 듣기만 해: 자동 수락하지만 내 음성은 전달되지 않음
+                console.log('듣기만 하기 모드로 통화 수신:', data.fromProfile.name);
+                this.acceptIncomingCallListenOnly();
+                break;
         }
     }
     
@@ -593,33 +662,62 @@ class P2PMessenger {
         }
     }
     
-    // 일방향 통화 수락 (수신만 가능, 발신 불가)
-    async acceptIncomingCallOneWay() {
+    // 일단 들음 모드: 먼저 듣고 나서 말할지 결정
+    async acceptIncomingCallListenFirst() {
         const callType = this.incomingCallData.callType;
         this.currentCall = { 
             targetUserId: this.incomingCallData.fromUserId, 
             callType: callType,
-            isOneWay: true // 일방향 통화 표시
+            mode: 'listen-first'
         };
         
-        // 일방향 통화는 로컬 스트림 없이 수락
+        // 일단 들음 모드로 수락
         this.ws.send(JSON.stringify({
             type: 'call-response',
             userId: this.userId,
             targetUserId: this.incomingCallData.fromUserId,
             accepted: true,
-            oneWayMode: true // 일방향 모드 표시
+            callMode: 'listen-first'
         }));
         
         this.showCallScreen();
-        document.getElementById('callStatus').textContent = '일방향 수신 중... (발신 불가)';
+        document.getElementById('callStatus').textContent = '일단 들음 모드 - 듣고 있습니다...';
         
-        // 일방향 모드에서 거절 버튼 표시
-        document.getElementById('rejectOneWayCall').classList.remove('hidden');
+        // 로컬 비디오를 비활성화
+        const localVideo = document.getElementById('localVideo');
+        localVideo.style.display = 'none';
+        
+        // 안내 메시지와 수락/거절 버튼 표시
+        this.showListenFirstControls();
+    }
+    
+    // 듣기만 해 모드: 내 음성은 전달되지 않음
+    async acceptIncomingCallListenOnly() {
+        const callType = this.incomingCallData.callType;
+        this.currentCall = { 
+            targetUserId: this.incomingCallData.fromUserId, 
+            callType: callType,
+            mode: 'listen-only'
+        };
+        
+        // 듣기만 해 모드로 수락
+        this.ws.send(JSON.stringify({
+            type: 'call-response',
+            userId: this.userId,
+            targetUserId: this.incomingCallData.fromUserId,
+            accepted: true,
+            callMode: 'listen-only'
+        }));
+        
+        this.showCallScreen();
+        document.getElementById('callStatus').textContent = '듣기만 해 모드 - 내 음성은 전달되지 않습니다';
         
         // 로컬 비디오를 비활성화하고 메시지 표시
         const localVideo = document.getElementById('localVideo');
         localVideo.style.display = 'none';
+        
+        // 거절 버튼 표시
+        document.getElementById('rejectOneWayCall').classList.remove('hidden');
         
         // 안내 메시지 추가
         const videoContainer = document.querySelector('.video-container');
@@ -627,21 +725,127 @@ class P2PMessenger {
             const messageDiv = document.createElement('div');
             messageDiv.id = 'oneWayMessage';
             messageDiv.style.cssText = 'position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-size: 14px;';
-            messageDiv.textContent = '일방향 수신 모드: 상대방의 영상/음성만 수신합니다.';
+            messageDiv.textContent = '듣기만 해 모드: 상대방의 영상/음성만 수신합니다.';
             videoContainer.style.position = 'relative';
             videoContainer.appendChild(messageDiv);
         }
     }
     
-    // 일방향 통화 거절
+    // 일방향 통화 수락 (기존 메서드 - 호환성 유지)
+    async acceptIncomingCallOneWay() {
+        return this.acceptIncomingCallListenOnly();
+    }
+    
+    // 일단 들음 모드 컨트롤 표시
+    showListenFirstControls() {
+        const videoContainer = document.querySelector('.video-container');
+        
+        // 기존 메시지 제거
+        const existingMessage = document.getElementById('listenFirstMessage');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        // 안내 메시지와 버튼 추가
+        const controlsDiv = document.createElement('div');
+        controlsDiv.id = 'listenFirstMessage';
+        controlsDiv.style.cssText = 'position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); color: white; padding: 15px; border-radius: 8px; font-size: 14px; z-index: 1000;';
+        controlsDiv.innerHTML = `
+            <div style="margin-bottom: 10px;">일단 들음 모드: 상대방의 음성을 듣고 있습니다.</div>
+            <div style="display: flex; gap: 10px;">
+                <button id="acceptSpeaking" style="background: #4CAF50; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">말하기 수락</button>
+                <button id="rejectSpeaking" style="background: #f44336; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">거절</button>
+            </div>
+        `;
+        
+        videoContainer.style.position = 'relative';
+        videoContainer.appendChild(controlsDiv);
+        
+        // 버튼 이벤트 리스너 추가
+        document.getElementById('acceptSpeaking').addEventListener('click', () => {
+            this.acceptSpeakingInCall();
+        });
+        
+        document.getElementById('rejectSpeaking').addEventListener('click', () => {
+            this.rejectSpeakingInCall();
+        });
+    }
+    
+    // 일단 들음 모드에서 말하기 수락
+    async acceptSpeakingInCall() {
+        try {
+            // 로컬 스트림 획득
+            const constraints = {
+                audio: true,
+                video: this.currentCall.callType === 'video'
+            };
+            
+            this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            const localVideo = document.getElementById('localVideo');
+            localVideo.srcObject = this.localStream;
+            localVideo.style.display = this.currentCall.callType === 'video' ? 'block' : 'none';
+            
+            // 로컬 비디오 미러링 적용
+            if (this.currentCall.callType === 'video') {
+                localVideo.style.transform = 'scaleX(-1)';
+                localVideo.style.webkitTransform = 'scaleX(-1)';
+                localVideo.style.mozTransform = 'scaleX(-1)';
+                localVideo.style.msTransform = 'scaleX(-1)';
+            }
+            
+            // 서버에 말하기 수락 알림
+            this.ws.send(JSON.stringify({
+                type: 'accept-speaking',
+                userId: this.userId,
+                targetUserId: this.currentCall.targetUserId
+            }));
+            
+            // UI 업데이트
+            document.getElementById('callStatus').textContent = '양방향 통화 중';
+            this.currentCall.mode = 'normal';
+            
+            // 컨트롤 메시지 제거
+            const controlsMessage = document.getElementById('listenFirstMessage');
+            if (controlsMessage) {
+                controlsMessage.remove();
+            }
+            
+        } catch (error) {
+            console.error('미디어 접근 오류:', error);
+            alert('카메라/마이크 접근 권한이 필요합니다.');
+        }
+    }
+    
+    // 일단 들음 모드에서 말하기 거절
+    rejectSpeakingInCall() {
+        // 거절한 사용자를 차단 목록에 추가
+        this.rejectedByMe.add(this.currentCall.targetUserId);
+        console.log('일단 들음 모드에서 거절 및 차단:', this.currentCall.targetUserId);
+        
+        // 서버에 거절 알림 전송
+        this.ws.send(JSON.stringify({
+            type: 'reject-speaking',
+            userId: this.userId,
+            targetUserId: this.currentCall.targetUserId,
+            blocked: true
+        }));
+        
+        // 차단된 사용자 목록 업데이트
+        this.displayBlockedUsers();
+        
+        // 통화 종료
+        this.endCall();
+    }
+    
+    // 일방향/듣기만 해 모드 통화 거절
     rejectOneWayCall() {
-        if (!this.currentCall || !this.currentCall.isOneWay) {
+        if (!this.currentCall || (!this.currentCall.isOneWay && this.currentCall.mode !== 'listen-only')) {
             return;
         }
         
         // 거절한 사용자를 차단 목록에 추가
         this.rejectedByMe.add(this.currentCall.targetUserId);
-        console.log('일방향 통화 거절 및 차단:', this.currentCall.targetUserId);
+        console.log('듣기만 해 모드 거절 및 차단:', this.currentCall.targetUserId);
         
         // 서버에 거절 알림 전송
         this.ws.send(JSON.stringify({
@@ -843,10 +1047,15 @@ class P2PMessenger {
         remoteVideo.srcObject = null;
         localVideo.style.display = ''; // 일방향 모드에서 숨긴 로컬 비디오 복원
         
-        // 일방향 통화 메시지 제거
+        // 모든 통화 모드 관련 메시지 제거
         const oneWayMessage = document.getElementById('oneWayMessage');
         if (oneWayMessage) {
             oneWayMessage.remove();
+        }
+        
+        const listenFirstMessage = document.getElementById('listenFirstMessage');
+        if (listenFirstMessage) {
+            listenFirstMessage.remove();
         }
         
         // 거절 버튼 숨기기

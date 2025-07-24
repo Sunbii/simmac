@@ -31,11 +31,24 @@
                     <button id="editProfile">프로필 수정</button>
                 </div>
                 <div class="call-settings">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="allowIncomingCalls" checked>
-                        <span class="checkmark"></span>
-                        통화가능 (체크 해제 시 발신만 가능)
-                    </label>
+                    <h3>통화 모드 설정</h3>
+                    <div class="call-mode-options">
+                        <label class="radio-container">
+                            <input type="radio" name="callMode" value="listen-first" id="listenFirst">
+                            <span class="radio-checkmark"></span>
+                            일단 들음 (들은 후 말할지 결정)
+                        </label>
+                        <label class="radio-container">
+                            <input type="radio" name="callMode" value="listen-only" id="listenOnly">
+                            <span class="radio-checkmark"></span>
+                            듣기만 해 (내 음성 전달 안됨)
+                        </label>
+                        <label class="radio-container">
+                            <input type="radio" name="callMode" value="normal" id="normalCall" checked>
+                            <span class="radio-checkmark"></span>
+                            받으면 말해 (일반 통화)
+                        </label>
+                    </div>
                 </div>
             </div>
 
