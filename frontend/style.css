@@ -469,6 +469,15 @@ button:hover {
     margin-bottom: 20px;
 }
 
+/* 수동 레이아웃 제어 */
+.video-container.layout-vertical {
+    grid-template-columns: 1fr !important;
+}
+
+.video-container.layout-horizontal {
+    grid-template-columns: 1fr 1fr !important;
+}
+
 /* 3-4명: 2x2 그리드 */
 .video-container.users-3,
 .video-container.users-4 {

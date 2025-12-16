@@ -118,6 +118,14 @@ class P2PMessenger {
 
             // 참여자 수에 따라 동적으로 그리드 클래스 추가
             this.updateVideoLayout();
+
+            // 저장된 레이아웃 설정 불러오기
+            const savedLayout = localStorage.getItem('videoLayout');
+            if (savedLayout === 'vertical') {
+                videoContainer.classList.add('layout-vertical');
+            } else if (savedLayout === 'horizontal') {
+                videoContainer.classList.add('layout-horizontal');
+            }
         }
     }
 
@@ -170,14 +178,18 @@ class P2PMessenger {
         });
         
         // 통화 제어
+        document.getElementById('toggleLayout').addEventListener('click', () => {
+            this.toggleLayout();
+        });
+
         document.getElementById('toggleVideo').addEventListener('click', () => {
             this.toggleVideo();
         });
-        
+
         document.getElementById('toggleAudio').addEventListener('click', () => {
             this.toggleAudio();
         });
-        
+
         document.getElementById('endCall').addEventListener('click', () => {
             this.endCall();
         });
@@ -1041,7 +1053,25 @@ class P2PMessenger {
             }
         }
     }
-    
+
+    toggleLayout() {
+        const videoContainer = document.querySelector('.video-container');
+        const isVertical = videoContainer.classList.contains('layout-vertical');
+
+        // 토글: vertical <-> horizontal
+        if (isVertical) {
+            videoContainer.classList.remove('layout-vertical');
+            videoContainer.classList.add('layout-horizontal');
+        } else {
+            videoContainer.classList.remove('layout-horizontal');
+            videoContainer.classList.add('layout-vertical');
+        }
+
+        // 레이아웃 설정을 localStorage에 저장
+        const newLayout = isVertical ? 'horizontal' : 'vertical';
+        localStorage.setItem('videoLayout', newLayout);
+    }
+
     endCall() {
         // 통화 종료 알림을 상대방에게 전송
         if (this.currentCall && this.currentCall.targetUserId && this.ws) {
