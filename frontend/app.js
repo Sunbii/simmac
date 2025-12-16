@@ -91,18 +91,37 @@ class P2PMessenger {
         document.getElementById('profileSetup').classList.add('hidden');
         document.getElementById('mainScreen').classList.add('hidden');
         document.getElementById('callScreen').classList.remove('hidden');
-        
+
         // 통화 타입에 따라 비디오 컴테이너 표시/숨김
         const videoContainer = document.querySelector('.video-container');
         const callType = this.currentCall ? this.currentCall.callType : 'video';
-        
+
         if (callType === 'chat') {
             videoContainer.style.display = 'none';
             document.getElementById('callTitle').textContent = '채팅 중';
         } else {
-            videoContainer.style.display = 'block';
+            videoContainer.style.display = 'grid';  // grid로 변경
             document.getElementById('callTitle').textContent = '통화 중';
+
+            // 참여자 수에 따라 동적으로 그리드 클래스 추가
+            this.updateVideoLayout();
         }
+    }
+
+    // 비디오 레이아웃 업데이트
+    updateVideoLayout() {
+        const videoContainer = document.querySelector('.video-container');
+        const videos = videoContainer.querySelectorAll('video');
+        const userCount = videos.length;
+
+        // 기존 users-* 클래스 제거
+        videoContainer.className = videoContainer.className.replace(/\busers-\d+\b/g, '').trim();
+
+        // 참여자 수에 따라 클래스 추가
+        if (userCount > 2) {
+            videoContainer.classList.add(`users-${userCount}`);
+        }
+        // 2명일 때는 기본 스타일 사용 (좌우 배치)
     }
     
     // 이벤트 리스너 설정
