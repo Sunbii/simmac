@@ -669,28 +669,18 @@ video {
     background: #c82333;
 }
 
-/* 모바일 디바이스 전용 (JavaScript로 .is-mobile 클래스 추가됨) */
-body.is-mobile .video-container,
-body.is-mobile .video-container.users-3,
-body.is-mobile .video-container.users-4,
-body.is-mobile .video-container.users-5,
-body.is-mobile .video-container.users-6,
-body.is-mobile .video-container.users-7,
-body.is-mobile .video-container.users-8,
-body.is-mobile .video-container.users-9,
-body.is-mobile .video-container.users-10,
-body.is-mobile .video-container.users-11,
-body.is-mobile .video-container.users-12 {
-    grid-template-columns: 1fr !important;
-}
-
-body.is-mobile video {
-    height: 200px;
-}
-
-/* 작은 화면에서 메인 콘텐츠는 1열로 */
-@media (max-width: 768px) {
+/* 모바일: 작은 화면에서만 상하 배치 */
+@media (max-width: 600px) {
     .main-content {
         grid-template-columns: 1fr;
+    }
+
+    .video-container {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: 1fr 1fr !important;
+    }
+
+    video {
+        min-height: 200px;
     }
 }

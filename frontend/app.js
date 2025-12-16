@@ -21,22 +21,9 @@ class P2PMessenger {
 
 
     init() {
-        this.detectDeviceType();
         this.loadProfile();
         this.setupEventListeners();
         this.connectToSignalingServer();
-    }
-
-    // 실제 모바일 디바이스 감지
-    detectDeviceType() {
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-            || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
-
-        if (isMobile) {
-            document.body.classList.add('is-mobile');
-        } else {
-            document.body.classList.add('is-desktop');
-        }
     }
     
     // 프로필 관리
@@ -113,18 +100,13 @@ class P2PMessenger {
             videoContainer.style.display = 'none';
             document.getElementById('callTitle').textContent = '채팅 중';
         } else {
-            videoContainer.style.display = 'grid';  // grid로 변경
+            videoContainer.style.display = 'grid';
             document.getElementById('callTitle').textContent = '통화 중';
-
-            // 참여자 수에 따라 동적으로 그리드 클래스 추가
-            this.updateVideoLayout();
 
             // 저장된 레이아웃 설정 불러오기
             const savedLayout = localStorage.getItem('videoLayout');
             if (savedLayout === 'vertical') {
                 videoContainer.classList.add('layout-vertical');
-            } else if (savedLayout === 'horizontal') {
-                videoContainer.classList.add('layout-horizontal');
             }
         }
     }
