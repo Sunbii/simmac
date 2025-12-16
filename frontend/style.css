@@ -655,12 +655,15 @@ video {
     background: #c82333;
 }
 
-@media (max-width: 768px) {
+/* 태블릿 이하: 조정된 레이아웃 */
+@media (max-width: 1024px) {
     .main-content {
         grid-template-columns: 1fr;
     }
+}
 
-    /* 모바일: 참여자 수와 관계없이 모두 상하 배치 (1열) */
+/* 모바일: 참여자 수와 관계없이 모두 상하 배치 (1열) */
+@media (max-width: 600px) {
     .video-container,
     .video-container.users-3,
     .video-container.users-4,
