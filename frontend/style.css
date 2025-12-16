@@ -655,30 +655,28 @@ video {
     background: #c82333;
 }
 
-/* 태블릿 이하: 조정된 레이아웃 */
-@media (max-width: 1024px) {
-    .main-content {
-        grid-template-columns: 1fr;
-    }
+/* 모바일 디바이스 전용 (JavaScript로 .is-mobile 클래스 추가됨) */
+body.is-mobile .video-container,
+body.is-mobile .video-container.users-3,
+body.is-mobile .video-container.users-4,
+body.is-mobile .video-container.users-5,
+body.is-mobile .video-container.users-6,
+body.is-mobile .video-container.users-7,
+body.is-mobile .video-container.users-8,
+body.is-mobile .video-container.users-9,
+body.is-mobile .video-container.users-10,
+body.is-mobile .video-container.users-11,
+body.is-mobile .video-container.users-12 {
+    grid-template-columns: 1fr !important;
 }
 
-/* 모바일: 참여자 수와 관계없이 모두 상하 배치 (1열) */
-@media (max-width: 600px) {
-    .video-container,
-    .video-container.users-3,
-    .video-container.users-4,
-    .video-container.users-5,
-    .video-container.users-6,
-    .video-container.users-7,
-    .video-container.users-8,
-    .video-container.users-9,
-    .video-container.users-10,
-    .video-container.users-11,
-    .video-container.users-12 {
-        grid-template-columns: 1fr !important;
-    }
+body.is-mobile video {
+    height: 200px;
+}
 
-    video {
-        height: 200px;
+/* 작은 화면에서 메인 콘텐츠는 1열로 */
+@media (max-width: 768px) {
+    .main-content {
+        grid-template-columns: 1fr;
     }
 }

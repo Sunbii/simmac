@@ -19,11 +19,24 @@ class P2PMessenger {
         this.init();
     }
 
-    
+
     init() {
+        this.detectDeviceType();
         this.loadProfile();
         this.setupEventListeners();
         this.connectToSignalingServer();
+    }
+
+    // 실제 모바일 디바이스 감지
+    detectDeviceType() {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+            || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+
+        if (isMobile) {
+            document.body.classList.add('is-mobile');
+        } else {
+            document.body.classList.add('is-desktop');
+        }
     }
     
     // 프로필 관리
