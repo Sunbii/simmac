@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: simple-messenger
+    name: weon
     env: node
     buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
@@ -10,5 +10,5 @@ services:
       - key: PORT
         fromService:
           type: web
-          name: simple-messenger
+          name: weon
           property: port
