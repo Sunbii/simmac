@@ -1,2 +1,3 @@
-# simmac
-Simmac-P2P Video/Audio/Text Chat with WebRTC
+# WeOn
+WeOn - Anonymous Voice-First Messenger with WebRTC
+P2P Audio/Video/Text Communication Platform
